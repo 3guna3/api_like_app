@@ -94,7 +94,7 @@ RSpec.describe "V1::Posts", type: :request do
     end
   end
 
-  describe "PATCH /update" do
+  describe "PATCH #update" do
     subject { patch(v1_post_path(post_id), params: post_params, headers: headers) }
     let(:post) { create(:post, user_id: current_user.id) }
     let(:post_id) { post.id }
@@ -137,16 +137,37 @@ RSpec.describe "V1::Posts", type: :request do
         expect { subject }.not_to change { post.reload.content }
         expect(response).to have_http_status(:unprocessable_entity)
         json = JSON.parse(response.body)
-        expect(json["title"]).to include "を入力してください"
+        expect(json["title"]).to include "を入力��てください"
         expect(json["content"]).to include "を入力してください"
       end
     end
   end
 
-  describe "GET /destroy" do
-    it "returns http success" do
-      get "/v1/posts/destroy"
-      expect(response).to have_http_status(:success)
+  describe "DELETE #destroy" do
+    subject { delete(v1_post_path(post_id), headers: headers) }
+
+    context "本人の投稿の場合" do
+      let!(:post) { create(:post, user_id: current_user.id) }
+      it "投稿が削除されること" do
+        expect { subject }.to change { Post.count }.by(0)
+        expect(response).to have_http_status(:ok)
+      end
+    end
+
+    context "本人以外の投稿の場合" do
+      let!(:post) { create(:post, user_id: user.id) }
+      it "エラーが発生する" do
+        expect { subject }.to raise_error(ActiveRecord::RecordNotFound)
+      end
+    end
+
+    context "トークン認証がない場合" do
+      subject { delete(v1_post_path(post.id)) }
+      let!(:post) { create(:post, user_id: current_user.id) }
+      it "エラーが発生する" do
+        subject
+        expect(response).to have_http_status(:unauthorized)
+      end
     end
   end
 end
