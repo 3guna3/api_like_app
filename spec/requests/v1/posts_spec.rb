@@ -5,7 +5,7 @@ RSpec.describe "V1::Posts", type: :request do
   let(:headers) { current_user.create_new_auth_token }
   let(:user) { create(:user) }
 
-  describe "GET /index" do
+  describe "GET #index" do
     subject { get(v1_post_path, headers: headers) }
 
     context "トークン認証がない場合" do
@@ -32,7 +32,7 @@ RSpec.describe "V1::Posts", type: :request do
     end
   end
 
-  describe "GET /show" do
+  describe "GET #show" do
     subject { get(v1_post_path(post_id), headers: headers) }
     let(:post) { create(:post, user_id: current_user.id) }
     let(:post_id) { post.id }
@@ -63,10 +63,34 @@ RSpec.describe "V1::Posts", type: :request do
     end
   end
 
-  describe "GET /create" do
-    it "returns http success" do
-      get "/v1/posts/create"
-      expect(response).to have_http_status(:success)
+  describe "Post #create" do
+    subject { post(v1_posts_path, params: post_params, headers: headers) }
+    let(:post_params) { { post: attributes_for(:post, user_id: current_user.id) } }
+
+    context "トークン認証情報がない場合" do
+      subject { post(v1_posts_path, params: post_params) }
+      it "エラーが発生する", type: :do do
+        subject
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context "パラメータが正常な時" do
+      it "データが保存されること" do
+        expect { subject }.to change { Post.count }.by(1)
+        expect(response).to have_http_status(:ok)
+      end
+    end
+
+    context "パラメータが異常な時" do
+      let(:post_params) { { post: attributes_for(:post, :invalid, user_id: current_user.id) } }
+      it "データが保存されないこと" do
+        expect { subject }.not_to change { Post.count }
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json["title"]).to include "を入力してください"
+        expect(json["content"]).to include "を入力してください"
+      end
     end
   end
 
