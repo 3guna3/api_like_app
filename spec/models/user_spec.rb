@@ -1,5 +1,16 @@
-require 'rails_helper'
+require "rails_helper"
 
 RSpec.describe User, type: :model do
-  pending "add some examples to (or delete) #{__FILE__}"
+  context "ユーザーが削除されたとき" do
+    subject { user.destroy }
+    let(:user) { create(:user) }
+
+    context "投稿が存在するのであれば" do
+      before { create_list(:post, 5, user: user) }
+
+      it "ユーザーの投稿が全て削除される" do
+        expect { subject }.to change { user.posts.count }.from(5).to(0)
+      end
+    end
+  end
 end

@@ -3,7 +3,7 @@ class V1::PostsController < ApplicationController
   before_action :set_post, only: %i[show update destroy]
 
   def index
-    posts = Post.allocate
+    posts = Post.all
     render json: posts
   end
 
@@ -25,7 +25,7 @@ class V1::PostsController < ApplicationController
     if @post.update(post_params)
       render json: @post
     else
-      reder json: @post.errors, status: :unprocessable_entity
+      render json: @post.errors, status: :unprocessable_entity
     end
   end
 

@@ -6,19 +6,19 @@ RSpec.describe "V1::Posts", type: :request do
   let(:user) { create(:user) }
 
   describe "GET #index" do
-    subject { get(v1_post_path, headers: headers) }
+    subject { get(v1_posts_path, headers: headers) }
 
-    context "トークン認証がない場合" do
-      subject { get(v1_post_path) }
+    context "トークン認証情報がない場合" do
+      subject { get(v1_posts_path) }
       let!(:post) { create(:post, user_id: current_user.id) }
-      it "エラーが発生する" do
+      it "エラーする" do
         subject
         expect(response).to have_http_status(:unauthorized)
       end
     end
 
     before { create_list(:post, 3, user_id: current_user.id) }
-    context "ユーザーの投稿が存在する時" do
+    context "ユーザーの投稿が存在するとき" do
       it "投稿一覧を取得できること" do
         subject
         json = JSON.parse(response.body)
@@ -39,13 +39,13 @@ RSpec.describe "V1::Posts", type: :request do
 
     context "トークン認証情報がない場合" do
       subject { get(v1_post_path(post_id)) }
-      it "エラーが発生する" do
+      it "エラーする" do
         subject
         expect(response).to have_http_status(:unauthorized)
       end
     end
 
-    context "指定したidの投稿が存在する場合" do
+    context "指定したidの投稿が存在する時" do
       it "指定したidの投稿を取得できること" do
         subject
         json = JSON.parse(response.body)
@@ -55,9 +55,9 @@ RSpec.describe "V1::Posts", type: :request do
       end
     end
 
-    context "指定したidの投稿が存在しない場合" do
+    context "指定したidの投稿が存在しない時" do
       let(:post_id) { 0 }
-      it "エラーが発生する" do
+      it "エラーする" do
         expect { subject }.to raise_error(ActiveRecord::RecordNotFound)
       end
     end
@@ -69,20 +69,20 @@ RSpec.describe "V1::Posts", type: :request do
 
     context "トークン認証情報がない場合" do
       subject { post(v1_posts_path, params: post_params) }
-      it "エラーが発生する", type: :do do
+      it "エラーする", type: :do do
         subject
         expect(response).to have_http_status(:unauthorized)
       end
     end
 
-    context "パラメータが正常な時" do
+    context "パラメータが正常なとき" do
       it "データが保存されること" do
         expect { subject }.to change { Post.count }.by(1)
         expect(response).to have_http_status(:ok)
       end
     end
 
-    context "パラメータが異常な時" do
+    context "パラメータが異常なとき" do
       let(:post_params) { { post: attributes_for(:post, :invalid, user_id: current_user.id) } }
       it "データが保存されないこと" do
         expect { subject }.not_to change { Post.count }
@@ -102,13 +102,13 @@ RSpec.describe "V1::Posts", type: :request do
     context "トークン認証情報がない場合" do
       subject { patch(v1_post_path(post_id), params: post_params) }
       let(:post_params) { { post: attributes_for(:post, user_id: current_user.id) } }
-      it "エラーが発生する" do
+      it "エラーする" do
         subject
         expect(response).to have_http_status(:unauthorized)
       end
     end
 
-    context "パラーメータが正常な時 && 本人投稿の場合" do
+    context "パラメータが正常の時 && 本人の投稿の場合" do
       let(:post_params) { { post: attributes_for(:post, user_id: current_user.id) } }
       it "投稿が更新されること" do
         new_post = post_params[:post]
@@ -121,50 +121,50 @@ RSpec.describe "V1::Posts", type: :request do
       end
     end
 
-    context "パラーメータが正常な時 && 本人以外の投稿の場合" do
+    context "パラメータが正常の時 && 本人以外の投稿の場合" do
       let(:post_params) { { post: attributes_for(:post, user_id: user.id) } }
       let(:other_post) { create(:post, user_id: user.id) }
       let(:post_id) { other_post.id }
-      it "エラーが発生する" do
+      it "エラーする" do
         expect { subject }.to raise_error(ActiveRecord::RecordNotFound)
       end
     end
 
-    context "パラメータが異常な時" do
-      let(:post_params) { { post: attributes_for(:post, :invalid, user_id: current_user.id0) } }
-      it "パラメータが更新されないこと" do
+    context "パラメータが異常なとき" do
+      let(:post_params) { { post: attributes_for(:post, :invalid, user_id: current_user.id) } }
+      it "投稿が更新されないこと" do
         expect { subject }.not_to change { post.reload.title }
         expect { subject }.not_to change { post.reload.content }
         expect(response).to have_http_status(:unprocessable_entity)
         json = JSON.parse(response.body)
-        expect(json["title"]).to include "を入力��てください"
+        expect(json["title"]).to include "を入力してください"
         expect(json["content"]).to include "を入力してください"
       end
     end
   end
 
   describe "DELETE #destroy" do
-    subject { delete(v1_post_path(post_id), headers: headers) }
+    subject { delete(v1_post_path(post.id), headers: headers) }
 
     context "本人の投稿の場合" do
       let!(:post) { create(:post, user_id: current_user.id) }
       it "投稿が削除されること" do
-        expect { subject }.to change { Post.count }.by(0)
-        expect(response).to have_http_status(:ok)
+        expect { subject }.to change { Post.count }.by(-1)
+        expect(response).to have_http_status(:no_content)
       end
     end
 
     context "本人以外の投稿の場合" do
       let!(:post) { create(:post, user_id: user.id) }
-      it "エラーが発生する" do
+      it "エラーする" do
         expect { subject }.to raise_error(ActiveRecord::RecordNotFound)
       end
     end
 
-    context "トークン認証がない場合" do
+    context "トークン認証情報がない場合" do
       subject { delete(v1_post_path(post.id)) }
       let!(:post) { create(:post, user_id: current_user.id) }
-      it "エラーが発生する" do
+      it "エラーする" do
         subject
         expect(response).to have_http_status(:unauthorized)
       end
